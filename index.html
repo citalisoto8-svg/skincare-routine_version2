@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Disciplina Silenciosa</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.container {
+  background: rgba(255,255,255,0.1);
+  padding: 20px;
+  border-radius: 15px;
+  margin: 20px auto;
+  width: 350px;
+}
+
+input, button, textarea {
+  margin: 5px;
+  padding: 5px;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  background: #6ec6ff;
+  cursor: pointer;
+}
+
+.success {
+  animation: glow 1s infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 10px #6ec6ff; }
+  to { box-shadow: 0 0 25px #ffffff; }
+}
+
+.calendar-day {
+  display: inline-block;
+  margin: 3px;
+  padding: 5px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.complete { background: #4caf50; }
+.incomplete { background: #f44336; }
+
+.hidden { display:none; }
+
+</style>
+</head>
+<body>
+
+<h1>✨ Mi Sistema de Skin Care</h1>
+
+<div class="container">
+<h3>Selecciona tus días activos</h3>
+
+<label><input type="checkbox" value="1"> Lunes</label>
+<label><input type="checkbox" value="2"> Martes</label>
+<label><input type="checkbox" value="3"> Miércoles</label>
+<label><input type="checkbox" value="4"> Jueves</label>
+<label><input type="checkbox" value="5"> Viernes</label>
+<label><input type="checkbox" value="6"> Sábado</label>
+<label><input type="checkbox" value="0"> Domingo</label>
+
+<br>
+<button onclick="guardarDias()">Guardar días</button>
+</div>
+
+<div class="container">
+<h3>Configura tus productos</h3>
+
+<textarea id="productosDia" placeholder="Productos de día (uno por línea)"></textarea><br>
+<textarea id="productosNoche" placeholder="Productos de noche (uno por línea)"></textarea><br>
+
+<button onclick="guardarConfiguracion()">Guardar configuración</button>
+</div>
+
+<div class="container hidden" id="checklistContainer">
+<h3>Checklist de Hoy</h3>
+<div id="checklist"></div>
+<button onclick="guardarDia()">Guardar Día</button>
+<p id="mensajeMotivacional"></p>
+</div>
+
+<div class="container">
+<h3>Historial</h3>
+<div id="historial"></div>
+</div>
+
+<script>
+
+const frases = [
+"Disciplina silenciosa, resultados visibles.",
+"Hoy también me elegí.",
+"Constancia que nutre, cuidado que florece.",
+"Mi piel refleja el amor que me doy.",
+"Pequeños hábitos, grandes transformaciones.",
+"Cumplido. Porque merezco sentirme bien.",
+"Autocuidado no es lujo, es respeto propio.",
+"Lo hice incluso sin ganas… y eso cuenta.",
+"Mi constancia es más fuerte que mi pereza.",
+"Glow que nace de la disciplina."
+];
+
+function guardarDias(){
+  const checks = document.querySelectorAll("input[type=checkbox]");
+  let dias = [];
+  checks.forEach(c => {
+    if(c.checked) dias.push(c.value);
+  });
+  localStorage.setItem("diasActivos", JSON.stringify(dias));
+  validarDiaActual();
+}
+
+function validarDiaActual(){
+  const hoy = new Date().getDay().toString();
+  const dias = JSON.parse(localStorage.getItem("diasActivos") || "[]");
+
+  if(dias.includes(hoy)){
+    document.getElementById("checklistContainer").classList.remove("hidden");
+    cargarChecklist();
+  } else {
+    document.getElementById("checklistContainer").classList.add("hidden");
+  }
+}
+
+function guardarConfiguracion() {
+  localStorage.setItem("productosDia", document.getElementById("productosDia").value);
+  localStorage.setItem("productosNoche", document.getElementById("productosNoche").value);
+  cargarChecklist();
+}
+
+function cargarChecklist() {
+  const cont = document.getElementById("checklist");
+  cont.innerHTML = "";
+
+  const dia = (localStorage.getItem("productosDia") || "").split("\n");
+  const noche = (localStorage.getItem("productosNoche") || "").split("\n");
+
+  cont.innerHTML += "<h4>Rutina de Día</h4>";
+  dia.forEach(p => {
+    if(p.trim() !== "")
+      cont.innerHTML += `<label><input type="checkbox" value="${p}"> ${p}</label><br>`;
+  });
+
+  cont.innerHTML += "<h4>Rutina de Noche</h4>";
+  noche.forEach(p => {
+    if(p.trim() !== "")
+      cont.innerHTML += `<label><input type="checkbox" value="${p}"> ${p}</label><br>`;
+  });
+}
+
+function guardarDia() {
+  const hoy = new Date().toISOString().split("T")[0];
+  const checks = document.querySelectorAll("#checklist input[type=checkbox]");
+  let completo = true;
+  let faltantes = [];
+
+  checks.forEach(c => {
+    if(!c.checked){
+      completo = false;
+      faltantes.push(c.value);
+    }
+  });
+
+  localStorage.setItem("dia_" + hoy, JSON.stringify({
+    completo,
+    faltantes
+  }));
+
+  mostrarHistorial();
+
+  if(completo){
+    activarCelebracion();
+  } else {
+    document.getElementById("mensajeMotivacional").innerText =
+    "Te faltó: " + faltantes.join(", ");
+  }
+}
+
+function activarCelebracion(){
+  const cont = document.getElementById("checklistContainer");
+  cont.classList.add("success");
+
+  const frase = frases[Math.floor(Math.random() * frases.length)];
+  document.getElementById("mensajeMotivacional").innerText = frase;
+
+  setTimeout(() => {
+    cont.classList.remove("success");
+  }, 3000);
+}
+
+function mostrarHistorial(){
+  const hist = document.getElementById("historial");
+  hist.innerHTML = "";
+
+  for(let key in localStorage){
+    if(key.startsWith("dia_")){
+      const fecha = key.replace("dia_","");
+      const data = JSON.parse(localStorage.getItem(key));
+
+      hist.innerHTML += `
+      <div class="calendar-day ${data.completo ? 'complete':'incomplete'}">
+        ${fecha}
+      </div>`;
+    }
+  }
+}
+
+validarDiaActual();
+mostrarHistorial();
+
+</script>
+
+</body>
+</html>
